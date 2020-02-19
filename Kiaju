@@ -1,0 +1,86 @@
+#/bin/bash
+#aga's Kaiju Pipeline
+#
+#USER NEEDS TO SPECIFY:
+
+RUNDIR=/mnt/mol-ngs/NGSRawData/200206_M01437_0400_000000000-CYFHH
+OUTDIR=Coronavir_kaiju13.02
+Kaiju_DB=databases/rvdb_coronavir2.kaiju.fmi
+nodes=databases/nodes.dmp
+#SAMPLESHEET="${5:-"$RUNDIR"/SampleSheet.csv}" 
+BASEN=${RUNDIR##*/}
+
+
+###
+## PRINT CONFIGURATION
+echo "[$(date)]: Running Kajiu pipeline with following parameters:" >&2
+echo "[$(date)]: RUNDIR = ${RUNDIR}" >&2
+echo "[$(date)]: OUTPUTDIR = ${OUTDIR}" >&2
+#echo "[$(date)]: SAMPLE_SHEET = ${SAMPLESHEET}" >&2
+echo "[$(date)]: Kaiju_DB = ${Kaiju_DB}" >&2
+
+
+### PREPARE THE SHELL 
+echo "[$(date)]: Preparing shell." >&2
+source activate aga #probably need to create other env for that
+mkdir $OUTDIR
+mkdir $OUTDIR/Kaiju_out
+
+###
+## FIND ALL FASTQ FILES
+FQ=$(find -L "${RUNDIR}/Data/Intensities/BaseCalls" -name "*_R1*.fastq.gz" -type f)
+if [ -z "$FQ" ]; then
+  echo "[$(date)]: No FASTQs found. Exiting..." >&2
+  exit 0
+else
+   echo "[$(date)]: The number of reads: ls -l | wc -l" >&2 
+   echo "[$(date)]: Found the following FASTQs:" >&2
+   echo $FQ | sort | sed -e "s/gz /gz\n/g" | sed "s/\(^.\)/\t\1/g" >&2
+fi
+
+for FR1 in ${FQ}; do
+   FR1N=${FR1##*/}
+   SAMPLEN=${FR1N/_R1*/}
+   
+
+   
+   ###1. Run Kaiju 
+
+   echo "[$(date)]: Kaiju starts" >&2
+   kaiju -z 10 -t databases/nodes.dmp -f ${Kaiju_DB} -i ${FR1} -j ${FR1/_R1/_R2}  -E 0.01 -o $OUTDIR/Kaiju_out/${SAMPLEN}.out.txt -v 2>&1 | tee $OUTDIR/Kaiju_out/${SAMPLEN}.out.txt.log 
+   echo "[$(date)]: Kaiju done" >&2
+   
+   ###2. Kaiju to krona 
+   echo "[$(date)]: Kaiju to krona starts" >&2
+   kaiju2krona -t databases/nodes.dmp -n databases/names.dmp -i $OUTDIR/Kaiju_out/${SAMPLEN}.out.txt -o $OUTDIR/Kaiju_out/${SAMPLEN}.kaiju_summary.tsv -v 2>&1 | tee $OUTDIR/Kaiju_out/${SAMPLEN}.kaiju_summary.log 
+   echo "[$(date)]: Kaiju to krona done" >&2
+
+   echo "[$(date)]: Creating Krona files starts" >&2
+   ktImportText -o $OUTDIR/Kaiju_out/${SAMPLEN}krona.html $OUTDIR/Kaiju_out/${SAMPLEN}.kaiju_summary.tsv 2>&1 | tee $OUTDIR/Kaiju_out/${SAMPLEN}.kaiju_summary.log
+   echo "[$(date)]: Creating Krona files done" >&2
+done
+   
+
+   
+
+for FR1 in ${FQ}; do
+   FR1N=${FR1##*/}
+   SAMPLEN=${FR1N/_R1*/}
+   ###5. Running FASTQC 
+   echo "[$(date)]: Running FASTQC" >&2
+   mkdir $OUTDIR/FASTQC_OUTPUT 
+   fastqc -t 6 -o $OUTDIR/FASTQC_OUTPUT \
+   --extract \
+   --threads 22 \
+   -- adapters /opt/resources/fastqc_contaminant_list.txt \
+   --contaminants /opt/resources/fastqc_contaminant_list.txt \
+   $OUTDIR/${SAMPLEN}.merged.bam.bam
+   > $FQ.FASTQC.log 2> $FQ.FASTQC.err
+   echo "[$(date)]: Fastqc finished" >&2
+
+###6. Running multiqc
+echo "[$(date)]: Starting multiqc" >&2
+mkdir $OUTDIR/multiqc_output.${FQ}
+multiqc $OUTDIR/FASTQC_OUTPUT . --interactive > OUTDIR/multiqc_output.${FQ}
+echo "[$(date)]: Multiqc done" >&2
+done
