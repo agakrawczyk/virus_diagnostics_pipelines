@@ -45,50 +45,63 @@ ulimit -S -m 250000000
 #ulimit -a
 
 ###0 QA
-/usr/bin/time -v fastqc --verbose --threads 10 \
-  --outdir $OUTDIR/FASTQC --adapters /opt/resources/fastqc_adapter_list.txt \
+/usr/bin/time --verbose --output=${OUTDIRS}/FASTQC/fastqc.time.log \
+  fastqc --verbose --threads 10 \
+  --adapters /opt/resources/fastqc_adapter_list.txt \
   --contaminants /opt/resources/fastqc_contaminant_list.txt \
+  --outdir $OUTDIR/FASTQC \
   ${FR1} ${FR1/_R1/_R2} \
-  > $OUTDIR/FASTQC/fastqc.time.log 2>&1
+  > $OUTDIR/FASTQC/fastqc.log \
+  2> $OUTDIR/FASTQC/fastqc.err
 
 ###1. Joining reads with FLASH
 echo "[$(date)]: FLASH starts" >&2
 #NOTE: flash needs output directory (-d) and outputprefix (-o) seperately!!!
-/usr/bin/time -v flash2 -M 250 -t 10 \
-  -d $OUTDIR/FLASH_OUTPUT/ \
-  -o ${SAMPLEN} \
+/usr/bin/time --verbose --output=${OUTDIRS}/FLASH_OUTPUT/flash2.time.log \
+  flash2 --max-overlap=250 --threads=10 \
+  --output-directory=$OUTDIR/FLASH_OUTPUT/ \
+  --output-prefix=${SAMPLEN} \
   ${FR1} ${FR1/_R1/_R2} \
-  > $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.time.log 2>&1
+  > $OUTDIR/FLASH_OUTPUT/flash2.log \
+  2> $OUTDIR/FLASH_OUTPUT/flash2.err
 echo "[$(date)]: FLASH done" >&2
 
 ###2.Run YARA on both joined and unjoined reads 
 echo "[$(date)]: YARA starts" >&2
-/usr/bin/time -v yara_mapper -v -t 10 -s ${YARA_STRATA_RATE} \
+/usr/bin/time --verbose --output=$OUTDIR/${SAMPLEN}.join.time.log\
+  yara_mapper --very-verbose --threads 10 \
+  --strata-rate ${YARA_STRATA_RATE} \
+  --output-file $OUTDIR/${SAMPLEN}.join.bam \
   ${YARA_DB} \
   $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.extendedFrags.fastq \
-  -o $OUTDIR/${SAMPLEN}.join.bam \
-  > $OUTDIR/${SAMPLEN}.join.time.log 2>&1
-/usr/bin/time -v yara_mapper -v -t 10 -s 2 \
+  > $OUTDIR/${SAMPLEN}.join.log \
+  2> $OUTDIR/${SAMPLEN}.join.err
+/usr/bin/time --verbose --output=$OUTDIR/${SAMPLEN}.un.time.log\
+  yara_mapper --very-verbose --threads 10 \
+  --strata-rate ${YARA_STRATA_RATE} \
+  --output-file $OUTDIR/${SAMPLEN}.un.bam \
   ${YARA_DB} \
   $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_1.fastq \
   $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_2.fastq \
-  -o $OUTDIR/${SAMPLEN}.un.bam \
-  > $OUTDIR/${SAMPLEN}.un.time.log 2>&1
+  > $OUTDIR/${SAMPLEN}.un.log \
+  2> $OUTDIR/${SAMPLEN}.un.err
 echo "[$(date)]: YARA finished" >&2
 
 
 ####removing the FASTQJOIN file after mapping it with yara
-#rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.extendedFrags.fastq
-#rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_1.fastq
-#rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_2.fastq
+rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.extendedFrags.fastq
+rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_1.fastq
+rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_2.fastq
 
 
 ###3. Merge the bam files with samtools 
 echo "[$(date)]: Samtools merge starts" >&2
-/usr/bin/time -v samtools merge --threads 10 \
+/usr/bin/time --verbose --output=$OUTDIR/${SAMPLEN}.merged.time.log \
+  samtools merge --threads 10 \
   $OUTDIR/${SAMPLEN}.merged.bam $OUTDIR/${SAMPLEN}.un.bam \
   $OUTDIR/${SAMPLEN}.join.bam \
-  >$OUTDIR/${SAMPLEN}.merged.time.log 2>&1
+  > $OUTDIR/${SAMPLEN}.merged.log \
+  2> $OUTDIR/${SAMPLEN}.merged.err \
 echo "[$(date)]: Samtools merge done" >&2
 
 ####removing the intermediate bam files 
@@ -97,11 +110,15 @@ rm -f $OUTDIR/${SAMPLEN}.join.bam $OUTDIR/${SAMPLEN}.un.bam
 ###4. Run SLIMM 
 echo "[$(date)]: SLIMM starts" >&2
 #NOTE: Wrong bam file used here!!!
-/usr/bin/time -v slimm -w 1000 -r species \
-  -ro -co -o $OUTDIR/slimm_reports/${SAMPLEN} \
+/usr/bin/time --verbose --output=$OUTDIR/slimm_reports/${SAMPLEN}.time.log \
+  slimm --verbose \
+  --bin-width 1000 --rank species \
+  --raw-output --coverage-output \
+  --output-prefix $OUTDIR/slimm_reports/${SAMPLEN} \
   ${SLIMM_DB} \
   $OUTDIR/${SAMPLEN}.merged.bam \
-  > $OUTDIR/slimm_reports/${SAMPLEN}.time.log 2>&1
+  > $OUTDIR/slimm_reports/${SAMPLEN}.log \
+  2> $OUTDIR/slimm_reports/${SAMPLEN}.err
 echo "[$(date)]: SLIMM done" >&2
 
 touch ${OUTDIR}.finished
