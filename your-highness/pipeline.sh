@@ -3,7 +3,7 @@
 #
 #USER NEEDS TO SPECIFY:
 
-RUNDIR=/home/krawczyk/workdir/Virusseq/fastq
+RUNDIR=/home/helmuth/workspace/VIR/analyses/Aga/virus_diagnostics_pipelines/your-highness/testfq #/home/krawczyk/workdir/Virusseq/fastq
 OUTDIR=/opt/exchange/VIR/yara_slimm_fastq_results
 SLIMM_DB=/home/krawczyk/workdir/databases/slimm_db_C-RVDB16.0_HUMAN_GENOME.sldb
 YARA_DB=/home/krawczyk/workdir/databases/C-RVDBv16.yara.index
@@ -28,8 +28,7 @@ for FR1 in ${FQ}; do
   mkdir -p ${OUTDIRS}
   /usr/bin/time --verbose --output=${OUTDIRS}/yara+slimm.time.log \
     bash yara+slimm.sh ${FR1} ${YARA_DB} ${SLIMM_DB} ${OUTDIRS} \
-    > ${OUTDIRS}/yara+slimm.log \
-    2> ${OUTDIRS}/yara+slimm.err
+    2>&1 | tee ${OUTDIRS}/yara+slimm.log
 done
 
 ###6. Running multiqc
