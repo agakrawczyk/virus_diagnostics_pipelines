@@ -45,7 +45,7 @@ ulimit -S -m 250000000
 echo "[$(date)]: FLASH starts" >&2
 #NOTE: flash needs output directory (-d) and outputprefix (-o) seperately!!!
 /usr/bin/time --verbose --output=${OUTDIR}/FLASH_OUTPUT/flash2.time.log \
-  flash2 --max-overlap=250 --threads=10 \
+  flash2 --max-overlap=300 --threads=10 \
   --output-directory=$OUTDIR/FLASH_OUTPUT/ \
   --output-prefix=${SAMPLEN} \
   ${FR1} ${FR1/_R1/_R2} \
