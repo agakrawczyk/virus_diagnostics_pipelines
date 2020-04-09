@@ -17,6 +17,8 @@ YARA_DB=$2
 SLIMM_DB=$3
 OUTDIR=$4
 
+YARA_STRATA_RATE=1
+
 ###
 ## PRINT CONFIGURATION
 echo "[$(date)]: Running yara+slimm with the following parameters:" >&2
@@ -28,6 +30,8 @@ echo "[$(date)]: OUTPUTDIR = ${OUTDIR}" >&2
 FR1N=${FR1##*/}
 SAMPLEN=${FR1N/_R1*/}
 
+touch ${OUTDIR}.started
+
 mkdir -p $OUTDIR
 mkdir -p $OUTDIR/FLASH_OUTPUT
 mkdir -p $OUTDIR/slimm_reports
@@ -35,7 +39,8 @@ mkdir -p $OUTDIR/FASTQC
 
 ### PREPARE THE SHELL 
 echo "[$(date)]: Preparing shell." >&2
-conda activate vir-agafix
+#NOTE: conda environment containing only yara + helpers
+conda activate vir-agafix 
 ulimit -S -m 250000000
 #ulimit -a
 
@@ -58,7 +63,7 @@ echo "[$(date)]: FLASH done" >&2
 
 ###2.Run YARA on both joined and unjoined reads 
 echo "[$(date)]: YARA starts" >&2
-/usr/bin/time -v yara_mapper -v -t 10 -s 2 \
+/usr/bin/time -v yara_mapper -v -t 10 -s ${YARA_STRATA_RATE} \
   ${YARA_DB} \
   $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.extendedFrags.fastq \
   -o $OUTDIR/${SAMPLEN}.join.bam \
@@ -99,3 +104,4 @@ echo "[$(date)]: SLIMM starts" >&2
   > $OUTDIR/slimm_reports/${SAMPLEN}.time.log 2>&1
 echo "[$(date)]: SLIMM done" >&2
 
+touch ${OUTDIR}.finished
