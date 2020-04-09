@@ -3,7 +3,8 @@
 #
 #USER NEEDS TO SPECIFY:
 
-RUNDIR=/home/helmuth/workspace/VIR/analyses/Aga/virus_diagnostics_pipelines/your-highness/testfq #/home/krawczyk/workdir/Virusseq/fastq
+RUNDIR=/home/krawczyk/workdir/Virusseq/fastq
+#RUNDIR=your-highness/testfq
 OUTDIR=/opt/exchange/VIR/yara_slimm_fastq_results
 SLIMM_DB=/home/krawczyk/workdir/databases/slimm_db_C-RVDB16.0_HUMAN_GENOME.sldb
 YARA_DB=/home/krawczyk/workdir/databases/C-RVDBv16.yara.index
@@ -33,11 +34,9 @@ done
 
 ###6. Running multiqc
 echo "[$(date)]: Starting multiqc" >&2
-mkdir -p $OUTDIR/multiqc_output
 conda activate vir-agafix 
 multiqc --verbose --interactive --force --no-ansi \
   --outdir $OUTDIR --title "MultiQC YARA+SLIMM VirusSeq" \
   $OUTDIR \
-  > $OUTDIR/multiqc_output.log \
-  2> $OUTDIR/multiqc_output.err 
+  2>&1 | tee $OUTDIR/MultiQC-YARASLIMM-VirusSeq.log
 echo "[$(date)]: Multiqc done" >&2
