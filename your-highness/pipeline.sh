@@ -35,6 +35,7 @@ done
 ###6. Running multiqc
 echo "[$(date)]: Starting multiqc" >&2
 mkdir -p $OUTDIR/multiqc_output
+conda activate vir-agafix 
 multiqc --verbose --interactive --force --no-ansi \
   --outdir $OUTDIR --title "MultiQC YARA+SLIMM VirusSeq" \
   $OUTDIR \
