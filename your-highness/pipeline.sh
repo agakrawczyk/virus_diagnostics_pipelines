@@ -3,7 +3,7 @@
 #
 #USER NEEDS TO SPECIFY:
 
-RUNDIR=/home/helmuth/workspace/VIR/analyses/Aga/virus_diagnostics_pipelines/your-highness/testfq #/home/krawczyk/workdir/Virusseq/fastq
+RUNDIR=/home/krawczyk/workdir/Virusseq/fastq
 OUTDIR=/opt/exchange/VIR/yara_slimm_fastq_results
 SLIMM_DB=/home/krawczyk/workdir/databases/slimm_db_C-RVDB16.0_HUMAN_GENOME.sldb
 YARA_DB=/home/krawczyk/workdir/databases/C-RVDBv16.yara.index
@@ -26,14 +26,18 @@ for FR1 in ${FQ}; do
   SAMPLEN=${FR1N/_R1*/}
   OUTDIRS=${OUTDIR}/${SAMPLEN}
   mkdir -p ${OUTDIRS}
-  /usr/bin/time -v -o ${OUTDIRS}/yara+slimm.time.log \
-    bash yara+slimm.sh ${FR1} ${YARA_DB} ${SLIMM_DB} ${OUTDIRS}
+  /usr/bin/time --verbose --output=${OUTDIRS}/yara+slimm.time.log \
+    bash yara+slimm.sh ${FR1} ${YARA_DB} ${SLIMM_DB} ${OUTDIRS} \
+    > ${OUTDIRS}/yara+slimm.log \
+    2> ${OUTDIRS}/yara+slimm.err
 done
 
 ###6. Running multiqc
 echo "[$(date)]: Starting multiqc" >&2
 mkdir -p $OUTDIR/multiqc_output
-multiqc --interactive --outdir $OUTDIR --title "MultiQC YARA+SLIMM" \
+multiqc --verbose --interactive --force --no-ansi \
+  --outdir $OUTDIR --title "MultiQC YARA+SLIMM VirusSeq" \
   $OUTDIR \
-  > $OUTDIR/multiqc_output.log
+  > $OUTDIR/multiqc_output.log \
+  2> $OUTDIR/multiqc_output.err 
 echo "[$(date)]: Multiqc done" >&2
