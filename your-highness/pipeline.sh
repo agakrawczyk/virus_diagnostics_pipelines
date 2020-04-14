@@ -19,7 +19,7 @@ if [ -z "$FQ" ]; then
 else
    echo "[$(date)]: The number of reads: ls -l | wc -l" >&2 
    echo "[$(date)]: Found the following FASTQs:" >&2
-   echo $FQ | sort | sed -e "s/gz /gz\n/g" | sed "s/\(^.\)/\t\1/g" >&2
+   for f in $FQ; do echo "  $f"; done
 fi
 
 for FR1 in ${FQ}; do
