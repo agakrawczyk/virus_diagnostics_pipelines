@@ -4,8 +4,9 @@
 #USER NEEDS TO SPECIFY:
 
 RUNDIR=/home/krawczyk/workdir/Virusseq/fastq
-#RUNDIR=your-highness/testfq
+#RUNDIR=testfq
 OUTDIR=/opt/exchange/VIR/yara_slimm_fastq_results
+#OUTDIR=testout
 SLIMM_DB=/home/krawczyk/workdir/databases/slimm_db_C-RVDB16.0_HUMAN_GENOME.sldb
 YARA_DB=/home/krawczyk/workdir/databases/C-RVDBv16.yara.index
 
