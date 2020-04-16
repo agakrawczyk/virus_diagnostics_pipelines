@@ -112,7 +112,7 @@ echo "[$(date)]: YARA done" >&2
 ###3. Merge the bam files with samtools 
 echo "[$(date)]: Samtools merge starts" >&2
 /usr/bin/time --verbose --output=$OUTDIR/${SAMPLEN}.merged.time.log \
-  samtools merge --threads 10 \
+  samtools merge -f --threads 10 \
   $OUTDIR/${SAMPLEN}.merged.bam $OUTDIR/${SAMPLEN}.un.bam \
   $OUTDIR/${SAMPLEN}.join.bam \
   2>&1 | tee $OUTDIR/${SAMPLEN}.merged.log
