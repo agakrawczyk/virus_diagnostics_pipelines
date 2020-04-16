@@ -32,7 +32,7 @@ SAMPLEN=${FR1N/_R1*/}
 
 touch ${OUTDIR}.started
 
-mkdir -p $OUTDIR/{FASTQC,FLASH_OUTPUT,slimm_reports}
+mkdir -p $OUTDIR/{FASTQC,FLASH_OUTPUT,slimm_reports,TRIMMOMATIC}
 
 ### PREPARE THE SHELL 
 echo "[$(date)]: Preparing shell." >&2
@@ -42,15 +42,34 @@ ulimit -S -m 250000000
 #ulimit -a
 
 ###1. Joining reads with FLASH
-echo "[$(date)]: FLASH starts" >&2
-#NOTE: flash needs output directory (-d) and outputprefix (-o) seperately!!!
+echo "[$(date)]: FLASH2 starts" >&2
+#NOTE: FLASH2 needs output directory (-d) and outputprefix (-o) seperately!!!
+#NOTE: Per default FLASH2 discards reads with 50% <2PHRED (very conservative!)
+#      -> Using trimmomatic later to remove low quality ends
 /usr/bin/time --verbose --output=${OUTDIR}/FLASH_OUTPUT/flash2.time.log \
   flash2 --max-overlap=300 --threads=10 \
   --output-directory=$OUTDIR/FLASH_OUTPUT/ \
   --output-prefix=${SAMPLEN} \
   ${FR1} ${FR1/_R1/_R2} \
   2>&1 | tee $OUTDIR/FLASH_OUTPUT/flash2.log
-echo "[$(date)]: FLASH done" >&2
+echo "[$(date)]: FLASH2 done" >&2
+
+#Trimming notCombined pairs
+echo "[$(date)]: TRIMMOMATIC starts" >&2
+/usr/bin/time --verbose --output=${OUTDIR}/TRIMMOMATIC/trimmomatic.time.log \
+  trimmomatic PE -threads 10 -phred33 \
+  -trimlog ${OUTDIR}/TRIMMOMATIC/trimmomatic.trimlog \
+  -summary ${OUTDIR}/TRIMMOMATIC/trimmomatic.summary \
+  $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_1.fastq \
+  $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_2.fastq \
+  $OUTDIR/TRIMMOMATIC/${SAMPLEN}.notCombined_1.trimmed-paired.fastq \
+  $OUTDIR/TRIMMOMATIC/${SAMPLEN}.notCombined_1.trimmed-unpaired.fastq \
+  $OUTDIR/TRIMMOMATIC/${SAMPLEN}.notCombined_2.trimmed-paired.fastq \
+  $OUTDIR/TRIMMOMATIC/${SAMPLEN}.notCombined_2.trimmed-unpaired.fastq \
+  ILLUMINACLIP:/opt/resources/adapter.fasta:2:30:10 TRAILING:10 MINLEN:36 AVGQUAL:20 \
+  2>&1 | tee $OUTDIR/TRIMMOMATIC/trimmomatic.log
+echo "[$(date)]: TRIMMOMATIC done" >&2
+
 
 ###0 QA
 echo "[$(date)]: FASTQC starts" >&2
@@ -59,7 +78,8 @@ echo "[$(date)]: FASTQC starts" >&2
   --adapters /opt/resources/fastqc_adapter_list.txt \
   --contaminants /opt/resources/fastqc_contaminant_list.txt \
   --outdir $OUTDIR/FASTQC \
-  ${FR1} ${FR1/_R1/_R2} $OUTDIR/FLASH_OUTPUT/${SAMPLEN}*fastq \
+  ${FR1} ${FR1/_R1/_R2} \
+  $OUTDIR/FLASH_OUTPUT/${SAMPLEN}*fastq $OUTDIR/TRIMMOMATIC/${SAMPLEN}*fastq\
   2>&1 | tee $OUTDIR/FASTQC/fastqc.log
 echo "[$(date)]: FASTQC done" >&2
 
@@ -77,16 +97,16 @@ echo "[$(date)]: YARA starts" >&2
   --strata-rate ${YARA_STRATA_RATE} \
   --output-file $OUTDIR/${SAMPLEN}.un.bam \
   ${YARA_DB} \
-  $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_1.fastq \
-  $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_2.fastq \
+  $OUTDIR/TRIMMOMATIC/${SAMPLEN}.notCombined_1.trimmed-paired.fastq \
+  $OUTDIR/TRIMMOMATIC/${SAMPLEN}.notCombined_2.trimmed-paired.fastq \
   2>&1 | tee $OUTDIR/${SAMPLEN}.un.log
 echo "[$(date)]: YARA done" >&2
 
 
 ####removing the FASTQJOIN file after mapping it with yara
-rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.extendedFrags.fastq
-rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_1.fastq
-rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_2.fastq
+#rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.extendedFrags.fastq
+#rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_1.fastq
+#rm $OUTDIR/FLASH_OUTPUT/${SAMPLEN}.notCombined_2.fastq
 
 
 ###3. Merge the bam files with samtools 
