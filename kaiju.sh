@@ -60,7 +60,7 @@ echo "[$(date)]: Kaiju done" >&2
 echo "[$(date)]: Kaiju to krona starts" >&2
 /usr/bin/time --verbose --output=${OUTDIR}/Kaiju.toKrona.time.log \
   kaiju2krona -t databases/nodes.dmp -n databases/names.dmp -i $OUTDIR/Kaiju_out/${SAMPLEN}.out.txt -o $OUTDIR/Kaiju_out/${SAMPLEN}.kaiju_summary.tsv -v 2>&1 | tee $OUTDIR/Kaiju_out/${SAMPLEN}.kaiju_summary.log 
-  ktImportText -o $OUTDIR/Kaiju_out/${SAMPLEN}krona.html -o $OUTDIR/Kaiju_out/${SAMPLEN}.kaiju_summary.tsv
+  ktImportText -o $OUTDIR/Kaiju_out/${SAMPLEN}krona.html $OUTDIR/Kaiju_out/${SAMPLEN}.kaiju_summary.tsv
 echo "[$(date)]: Kaiju to krona done" >&2   
 done
 
