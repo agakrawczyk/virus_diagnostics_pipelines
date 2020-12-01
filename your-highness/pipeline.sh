@@ -14,6 +14,24 @@ YARA_DB=/home/krawczyk/workdir/databases/C-RVDBv16.yara.index
 ###
 ## FIND ALL FASTQ FILES
 FQ=$(find -L "${RUNDIR}" -name "*_R1*.fastq" -type f)
+
+# MANUAL FILE LIST
+FQ="
+  /home/krawczyk/workdir/Virusseq/fastq/181025_06_56305_RNA_HSV2_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/180911_03_TBEVBENZ_RNA_TBEV_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/181025_11_14104_DNA_HSV-VZV_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/181119_04_180_RNA_HDV_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/180911_09_CSpecVir205_RNA_WNV_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/180911_11_CSpecVir114_DNA_YFV_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/180809_812_RNA_HEV_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/181025_10_8539_RNA_HSV2_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/180911_10_CSpecVir89_DNA_YFV_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/180911_01_RKI_RNA_Enterovirus-Coxsackievirus_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/180831_01_173_RNA_Cosavirus-Coxsackievirus_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/181012_173_RNA_Cosavirus-Coxackievirus_R1.fastq
+  /home/krawczyk/workdir/Virusseq/fastq/181025_12_49454_DNA_HSV-VZV_R1.fastq
+"
+
 if [ -z "$FQ" ]; then
   echo "[$(date)]: No FASTQs found. Exiting..." >&2
   exit 0
